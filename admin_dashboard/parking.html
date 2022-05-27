@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="parking.css">
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        #searchTextField {
+            width: 300px;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="section-container">
+        <header>
+            <div>
+                <img src="./img/logo.png" alt="" class="logo">
+            </div>
+        </header>
+        <div class="section-div">
+            <section>
+                <div>
+                    <ul>
+                        <li><a href="./index.html"><img src="./img/home-vector.svg">Home</a></li>
+                        <li><a href="./lightSettings.html"><img src="./img/light-vector.svg">Light Settings</a></li>
+                        <li><a href="./parking.html"><img src="./img/parking.svg" class="parking-class">Parking</a></li>
+                    </ul>
+                </div>
+            </section>
+            <div class="header-section">
+                <div class="header-card">
+                    <div>
+                        <p>Welcome to Admin Dashboard</p>
+                        <p class="second-p">Check and manage</p>
+
+                    </div>
+
+                </div>
+                <div class="parking-div">
+                    <p class="parking-areas">Parking Areas</p>
+                    <p class="count-number"></p>
+                    <p class="remove-area"></p>
+                    <div id="map"></div>
+                </div>
+                <div class="send-parking">
+                    <div class="parking-input">Name
+                        <input class="input-name" type="text">
+                    </div>
+                    <div class="parking-input">Lat
+                        <input class="input-lat" type="text">
+                    </div>
+                    <div class="parking-input">Lon
+                        <input class="input-lon" type="text">
+                    </div>
+                    <div class="parking-input">Count
+                        <input class="input-count" type="text">
+                    </div>
+                </div>
+                <div class="parking-button">
+                    <button class="send-parking-details" type="button">Send Parking Location</button>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countP = document.querySelector(".count-number");
+        let removeArea = document.querySelector(".remove-area")
+        let data;
+        let markerArray = [];
+        let markerDetails = [];
+        let dataId;
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: {
+                    lat: 39.7555,
+                    lng: 46.75
+                },
+                zoom: 15,
+                mapId: "7645dbeddb852e5b"
+            });
+
+            fetch("https://us-central1-smartkarabakh.cloudfunctions.net/main/main/getParkingData")
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data)
+                    this.data = data;
+                    for (let i = 0; i < this.data.length; i++) {
+                        markerArray.push(new google.maps.Marker({
+                            map: map,
+                            position: {
+                                lat: this.data[i].lat,
+                                lng: this.data[i].lon,
+                            }
+                        }))
+                        markerDetails.push({
+                            count: this.data[i].count,
+                            id: this.data[i].id
+                        })
+                    }
+
+                    for (let i = 0; i < markerArray.length; i++) {
+                        google.maps.event.addListener(
+                            markerArray[i],
+                            "click",
+                            function (e) {
+                                console.log(markerArray[i])
+                                dataId = markerDetails[i].id;
+                                countP.innerHTML = `There are ${markerDetails[i].count} parking places`
+                                removeArea.innerHTML = `Click to remove parking area`
+                                removeArea.style.display = "block"
+                            }
+                        )
+
+                    }
+                });
+
+            removeArea.addEventListener("click", (e) => {
+                console.log(e.target)
+                fetch('https://us-central1-smartkarabakh.cloudfunctions.net/main/main/deleteParkingWithId', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ docId: dataId }),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+            })
+
+
+            let inputName = document.querySelector(".input-name")
+            let inputLat = document.querySelector(".input-lat")
+            let inputLon = document.querySelector(".input-lon")
+            let inputCount = document.querySelector(".input-count")
+            let sendButton = document.querySelector(".send-parking-details")
+
+            console.log(inputLat.value);
+
+
+            sendButton.addEventListener("click", () => {
+                const data = { count: Number(inputCount.value), lat: Number(inputLat.value), lon: Number(inputLon.value), name: inputName.value };
+                fetch('https://us-central1-smartkarabakh.cloudfunctions.net/main/main/setParkingLocation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+            }
+            )
+
+
+        }
+    </script>
+
+    <!-- Loads maps library (with places library) and then calls initMap() -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?libraries=places&callback=initMap&key=AIzaSyAU3jer_ne0LFPndc7ke0WgHz88PyUrjes&map_ids=7645dbeddb852e5b">
+        </script>
+
+</body>
+
+</html>
